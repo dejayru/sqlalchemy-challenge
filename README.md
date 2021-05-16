@@ -60,3 +60,5 @@ Query the last 12 months of temperature observation data for this station.
 
 
 Plot the results as a histogram with bins=12.
+
+close out session
