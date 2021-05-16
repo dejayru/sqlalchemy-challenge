@@ -118,3 +118,100 @@ def tobs():
         tobs_list.append(line)
 
     return jsonify(tobs_list)
+
+# Calc `DMIN`, `DAVG`, and `DMAX` for all dates that are greater than and equal to the start date
+@app.route("/api/v1.0/<start>") 
+def start_only(start):
+
+     # Create session from Python to the DB
+    session = Session(engine)
+
+    # Date Range 
+    date_range_max = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+    date_range_max_str = str(date_range_max)
+    date_range_max_str = re.sub("'|,", "",date_range_max_str)
+    print (date_range_max_str)
+
+    date_range_min = session.query(Measurement.date).first()
+    date_range_min_str = str(date_range_min)
+    date_range_min_str = re.sub("'|,", "",date_range_min_str)
+    print (date_range_min_str)
+
+# Check entry of start date
+    entry_date = session.query(exists().where(Measurement.date == start)).scalar()
+ 
+    if entry_date:
+
+    	results = (session.query(func.min(Measurement.tobs)
+    				 ,func.avg(Measurement.tobs)
+    				 ,func.max(Measurement.tobs))
+    				 	  .filter(Measurement.date >= start).all())
+
+    	dmin =results[0][0]
+    	davg ='{0:.4}'.format(results[0][1])
+    	dmax =results[0][2]
+    
+    	result_printout =( ['Entered Start Date: ' + start,
+    						'The lowest Temperature was: '  + str(dmin) + ' F',
+    						'The average Temperature was: ' + str(davg) + ' F',
+    						'The highest Temperature was: ' + str(dmax) + ' F'])
+    	return jsonify(result_printout)
+
+    return jsonify({"error": f"Input Date {start} not valid. Date Range is {date_range_min_str} to {date_range_max_str}"}), 404
+
+
+# Calculate the `DMIN`, `DAVG`, and `DMAX` for dates between the start and end date 
+@app.route("/api/v1.0/<start>/<end>") 
+def start_end(start, end):
+
+    # Create session from Python to the DB
+    session = Session(engine)
+
+    # Date Range 
+    date_range_max = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+    date_range_max_str = str(date_range_max)
+    date_range_max_str = re.sub("'|,", "",date_range_max_str)
+    print (date_range_max_str)
+
+    date_range_min = session.query(Measurement.date).first()
+    date_range_min_str = str(date_range_min)
+    date_range_min_str = re.sub("'|,", "",date_range_min_str)
+    print (date_range_min_str)
+
+    # Check for valid entry of start date
+    valid_entry_start = session.query(exists().where(Measurement.date == start)).scalar()    
+
+    # Check for valid entry of end date
+    valid_entry_end = session.query(exists().where(Measurement.date == end)).scalar()
+
+    if valid_entry_start and valid_entry_end:
+
+            results = (session.query(func.min(Measurement.tobs)
+                        ,func.avg(Measurement.tobs)
+                        ,func.max(Measurement.tobs))
+                            .filter(Measurement.date >= start)
+                            .filter(Measurement.date <= end).all())
+
+            dmin =results[0][0]
+            davg ='{0:.4}'.format(results[0][1])
+            dmax =results[0][2]
+        
+            result_printout =( ['Entered Start Date: ' + start,
+                                'Entered End Date: ' + end,
+                                'The lowest Temperature was: '  + str(dmin) + ' F',
+                                'The average Temperature was: ' + str(davg) + ' F',
+                                'The highest Temperature was: ' + str(dmax) + ' F'])
+            return jsonify(result_printout)
+
+    if not valid_entry_start and not valid_entry_end:
+    	return jsonify({"error": f"Input Start {start} and End Date {end} not valid. Date Range is {date_range_min_str} to {date_range_max_str}"}), 404
+
+    if not valid_entry_start:
+    	return jsonify({"error": f"Input Start Date {start} not valid. Date Range is {date_range_min_str} to {date_range_max_str}"}), 404
+
+    if not valid_entry_end:
+    	return jsonify({"error": f"Input End Date {end} not valid. Date Range is {date_range_min_str} to {date_range_max_str}"}), 404
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
