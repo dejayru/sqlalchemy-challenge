@@ -101,3 +101,20 @@ def tobs():
     
     station_hno = q_station_list[0][0]
     print(station_hno)
+
+    # return a list for the year prior to final date
+    results = (session.query(Measurement.station, Measurement.date, Measurement.tobs)
+                      .filter(Measurement.date >= query_start_date)
+                      .filter(Measurement.station == station_hno)
+                      .all())
+
+    # Create JSON results
+    tobs_list = []
+    for result in results:
+        line = {}
+        line["Date"] = result[1]
+        line["Station"] = result[0]
+        line["Temperature"] = int(result[2])
+        tobs_list.append(line)
+
+    return jsonify(tobs_list)
